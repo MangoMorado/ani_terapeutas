@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ANI - Sistema de Agendamiento Terapéutico</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>Sistema de Agendamiento Terapéutico</h1>
+            <p>Gestione las citas de sus pacientes y terapeutas de forma eficiente.</p>
+        </header>
+        <nav class="menu">
+            <button class="btn btn-primary"><i class="fa-solid fa-calendar-plus"></i> Agendar Nueva Secuencia</button>
+            <button class="btn"><i class="fa-solid fa-user-plus"></i> Añadir Paciente</button>
+            <button class="btn"><i class="fa-solid fa-user-doctor"></i> Añadir Terapeuta</button>
+            <button class="btn"><i class="fa-solid fa-clock"></i> Configurar Horarios</button>
+            <button class="btn"><i class="fa-solid fa-layer-group"></i> Añadir Especialidad</button>
+            <button class="btn"><i class="fa-solid fa-users-gear"></i> Gestionar Terapeutas</button>
+        </nav>
+        <main class="agenda-panel">
+            <h2>Horarios del Día - <span id="fecha-hoy">miércoles, 21 de mayo de 2025</span></h2>
+            <div class="agenda-table-wrapper">
+                <table class="agenda-table"></table>
+            </div>
+        </main>
+        <footer class="footer">
+            <p>&copy; 2025 ANI IPS. Todos los derechos reservados.</p>
+        </footer>
+    </div>
+
+    <!-- Modal Añadir Paciente -->
+    <div class="modal" id="modalPaciente">
+        <div class="modal-content">
+            <span class="close" data-close="modalPaciente">&times;</span>
+            <h3><i class="fa-solid fa-user-plus"></i> Añadir Paciente</h3>
+            <form id="formPaciente">
+                <label>Nombre:<br><input type="text" name="nombre" required></label><br><br>
+                <label>Email:<br><input type="email" name="email"></label><br><br>
+                <button type="submit" class="btn btn-primary">Guardar</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Añadir Terapeuta -->
+    <div class="modal" id="modalTerapeuta">
+        <div class="modal-content">
+            <span class="close" data-close="modalTerapeuta">&times;</span>
+            <h3><i class="fa-solid fa-user-doctor"></i> Añadir Terapeuta</h3>
+            <form id="formTerapeuta">
+                <label>Nombre:<br><input type="text" name="nombre" required></label><br><br>
+                <label>Especialidad:<br>
+                    <select name="especialidad_id" id="selectEspecialidad" required></select>
+                </label><br><br>
+                <button type="submit" class="btn btn-primary">Guardar</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Añadir Especialidad -->
+    <div class="modal" id="modalEspecialidad">
+        <div class="modal-content">
+            <span class="close" data-close="modalEspecialidad">&times;</span>
+            <h3><i class="fa-solid fa-layer-group"></i> Añadir Especialidad</h3>
+            <form id="formEspecialidad">
+                <label>Nombre de la especialidad:<br><input type="text" name="nombre" required></label><br><br>
+                <button type="submit" class="btn btn-primary">Guardar</button>
+            </form>
+            <div style="margin-top:18px;">
+                <b>Especialidades existentes:</b>
+                <div id="listaEspecialidadesModal"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Gestionar Terapeutas -->
+    <div class="modal" id="modalGestionarTerapeutas">
+        <div class="modal-content" style="min-width:400px;max-width:98vw;">
+            <span class="close" data-close="modalGestionarTerapeutas">&times;</span>
+            <h3><i class="fa-solid fa-users-gear"></i> Gestionar Terapeutas</h3>
+            <div id="listaTerapeutas"></div>
+        </div>
+    </div>
+
+    <!-- Modal Configurar Horarios -->
+    <div class="modal" id="modalHorarios">
+        <div class="modal-content" style="min-width:350px;max-width:95vw;">
+            <span class="close" data-close="modalHorarios">&times;</span>
+            <h3><i class="fa-solid fa-clock"></i> Configurar Horarios</h3>
+            <form id="formHorario" style="margin-bottom:18px;">
+                <label>Hora de inicio:<br><input type="time" name="hora_inicio" required></label><br><br>
+                <label>Hora de fin:<br><input type="time" name="hora_fin" required></label><br><br>
+                <label>Duración de cada sesión (minutos):<br>
+                    <input type="number" name="duracion" min="5" max="60" step="5" value="15" required>
+                </label><br><br>
+                <button type="submit" class="btn btn-primary">Generar y Agregar Slots</button>
+            </form>
+            <div id="listaHorarios"></div>
+        </div>
+    </div>
+
+    <!-- Modal Agendar Nueva Secuencia -->
+    <div class="modal" id="modalSecuencia">
+        <div class="modal-content" style="min-width:400px;max-width:98vw;">
+            <span class="close" data-close="modalSecuencia">&times;</span>
+            <h3><i class="fa-solid fa-calendar-plus"></i> Agendar Secuencia de Terapias</h3>
+            <p style="color:#223; font-size:1.05em; margin-bottom:18px;">Seleccione un paciente, defina la secuencia de especialidades y elija un horario disponible.</p>
+            <form id="formSecuencia">
+                <label>Paciente:<br>
+                    <select name="paciente_id" id="selectPaciente" required></select>
+                </label><br><br>
+                <label>Fecha de inicio:<br>
+                    <input type="date" name="fecha" required>
+                </label><br><br>
+                <div id="secuenciaPasos"></div>
+                <button type="button" class="btn" id="btnAddPaso"><i class="fa fa-plus"></i> Añadir Especialidad</button>
+                <br><br>
+                <button type="button" class="btn btn-primary" id="btnBuscarHorarios"><i class="fa fa-search"></i> Buscar Horarios Disponibles</button>
+            </form>
+            <div id="sugerenciasHorarios" style="margin-top:18px;"></div>
+            <div id="msgSecuencia" style="margin-top:10px;"></div>
+        </div>
+    </div>
+
+    <script src="../js/main.js"></script>
+</body>
+</html> 
