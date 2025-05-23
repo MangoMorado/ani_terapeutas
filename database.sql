@@ -59,4 +59,10 @@ CREATE TABLE IF NOT EXISTS horarios (
 CREATE TABLE IF NOT EXISTS configuracion (
     clave VARCHAR(50) PRIMARY KEY,
     valor VARCHAR(100) NOT NULL
-); 
+);
+
+-- Insertar valores por defecto
+INSERT INTO configuracion (clave, valor) VALUES 
+('horaInicio', '08:00'),
+('horaFin', '18:00'),
+('minTime', '15'); 

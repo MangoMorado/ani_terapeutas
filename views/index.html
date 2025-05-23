@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ANI - Sistema de Agendamiento Terapéutico</title>
-    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="/ani_terapeutas/css/styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
 </head>
 <body>
@@ -22,8 +22,13 @@
             <button class="btn"><i class="fa-solid fa-users-gear"></i> Gestionar Terapeutas</button>
         </nav>
         <main class="agenda-panel">
+            <div class="agenda-controls" style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+                <button id="btnDiaAnterior" class="btn">⟨ Día anterior</button>
+                <button id="btnHoy" class="btn">Hoy</button>
+                <button id="btnDiaSiguiente" class="btn">Día siguiente ⟩</button>
+            </div>
             <h2>Horarios del Día - <span id="fecha-hoy">miércoles, 21 de mayo de 2025</span></h2>
-            <div class="agenda-table-wrapper">
+            <div class="agenda-table-container">
                 <table class="agenda-table"></table>
             </div>
         </main>
@@ -125,6 +130,6 @@
         </div>
     </div>
 
-    <script src="../js/main.js"></script>
+    <script src="/ani_terapeutas/js/main.js"></script>
 </body>
 </html> 

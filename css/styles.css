@@ -211,4 +211,94 @@ body {
     font-size: 1rem;
     margin-bottom: 8px;
     box-sizing: border-box;
+}
+
+/* --- MEJORAS PARA MÓVILES --- */
+@media (max-width: 768px) {
+  .container {
+    max-width: 100vw;
+    margin: 0;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 0;
+  }
+  .header {
+    padding: 18px 8px 8px 8px;
+    text-align: center;
+  }
+  .header h1 {
+    font-size: 1.3rem;
+  }
+  .header p {
+    font-size: 1rem;
+  }
+  .menu {
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 8px;
+    align-items: stretch;
+  }
+  .btn, .btn-primary, .btn-danger {
+    width: 100%;
+    font-size: 1.05rem;
+    padding: 12px 0;
+  }
+  .agenda-panel {
+    padding: 8px;
+  }
+  .agenda-panel h2 {
+    font-size: 1.1rem;
+    margin-bottom: 10px;
+  }
+  .agenda-controls {
+    flex-direction: column;
+    gap: 6px;
+    align-items: stretch;
+  }
+  .agenda-table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .agenda-table {
+    min-width: 600px;
+    font-size: 0.95rem;
+  }
+  .agenda-table th, .agenda-table td {
+    padding: 8px 4px;
+    font-size: 0.95rem;
+  }
+  .cita {
+    font-size: 0.97em;
+    padding: 6px 2px;
+  }
+  .footer {
+    font-size: 0.95rem;
+    padding: 12px 0 0 0;
+    margin-top: 16px;
+  }
+  .modal-content {
+    min-width: 98vw;
+    max-width: 100vw;
+    padding: 16px 4px 12px 4px;
+    border-radius: 0;
+    height: 98vh;
+    overflow-y: auto;
+  }
+  .modal-content h3 {
+    font-size: 1.05rem;
+    margin-bottom: 10px;
+  }
+  .modal-content label {
+    font-size: 0.98rem;
+  }
+  .modal-content input, .modal-content select {
+    font-size: 1rem;
+    padding: 10px 6px;
+    margin-bottom: 10px;
+  }
+  .close {
+    top: 8px;
+    right: 10px;
+    font-size: 1.3rem;
+  }
 } 

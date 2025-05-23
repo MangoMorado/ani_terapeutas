@@ -19,15 +19,15 @@ function fechaLarga(fecha) {
 // Cargar terapeutas y citas y construir la agenda
 async function cargarAgenda() {
     // 1. Obtener terapeutas
-    const terapeutas = await fetch('../api/terapeutas.php').then(r => r.json());
+    const terapeutas = await fetch('/ani_terapeutas/api/terapeutas.php').then(r => r.json());
     // 2. Obtener horarios
     let horarios = window.horariosAgenda;
     if (!horarios) {
-        horarios = await fetch('../api/horarios.php').then(r => r.json());
+        horarios = await fetch('/ani_terapeutas/api/horarios.php').then(r => r.json());
         window.horariosAgenda = horarios;
     }
     // 3. Obtener citas del día
-    let citas = await fetch(`../api/agendar.php?fecha=${formatFecha(fechaActual)}`).then(r => r.json());
+    let citas = await fetch(`/ani_terapeutas/api/agendar.php?fecha=${formatFecha(fechaActual)}`).then(r => r.json());
     if (!Array.isArray(citas)) citas = [];
 
     // 4. Construir encabezado de la tabla
@@ -129,7 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('formPaciente').onsubmit = async function(e) {
         e.preventDefault();
         const data = Object.fromEntries(new FormData(this));
-        const res = await fetch('../api/pacientes.php', {
+        const res = await fetch('/ani_terapeutas/api/pacientes.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
@@ -145,7 +145,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('formTerapeuta').onsubmit = async function(e) {
         e.preventDefault();
         const data = Object.fromEntries(new FormData(this));
-        const res = await fetch('../api/terapeutas.php', {
+        const res = await fetch('/ani_terapeutas/api/terapeutas.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
@@ -162,7 +162,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('formEspecialidad').onsubmit = async function(e) {
         e.preventDefault();
         const data = Object.fromEntries(new FormData(this));
-        const res = await fetch('../api/especialidades.php', {
+        const res = await fetch('/ani_terapeutas/api/especialidades.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
@@ -178,7 +178,35 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('formHorario').onsubmit = async function(e) {
         e.preventDefault();
         const data = Object.fromEntries(new FormData(this));
-        const res = await fetch('../api/horarios.php', {
+        
+        // Primero guardar la configuración
+        const configRes = await fetch('/ani_terapeutas/api/configuracion.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                clave: 'horaInicio',
+                valor: data.hora_inicio
+            })
+        });
+        await fetch('/ani_terapeutas/api/configuracion.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                clave: 'horaFin',
+                valor: data.hora_fin
+            })
+        });
+        await fetch('/ani_terapeutas/api/configuracion.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                clave: 'minTime',
+                valor: data.duracion
+            })
+        });
+
+        // Luego generar los slots
+        const res = await fetch('/ani_terapeutas/api/horarios.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
@@ -217,16 +245,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const fecha = document.querySelector('#formSecuencia input[name="fecha"]').value;
         const pasos = [];
         document.querySelectorAll('#secuenciaPasos .paso-secuencia').forEach(div => {
-            const especialidad_id = div.querySelector('select:nth-child(2)').value;
-            const terapeuta_id = div.querySelector('select:nth-child(3)').value;
-            pasos.push({ especialidad_id, terapeuta_id });
+            const especialidad_id = div.querySelector('select:nth-child(1)').value;
+            const terapeuta_id = div.querySelector('select:nth-child(2)').value;
+            const duracion = div.querySelector('select[name^="duracion_"]').value;
+            pasos.push({ especialidad_id, terapeuta_id, duracion: parseInt(duracion) });
         });
         if (!paciente_id || !fecha || pasos.length === 0) {
             document.getElementById('sugerenciasHorarios').innerHTML = '<span style="color:#e53e3e;">Completa todos los campos y pasos.</span>';
             return;
         }
         // Llamar al backend
-        const res = await fetch('../api/agendar_secuencia.php', {
+        const res = await fetch('/ani_terapeutas/api/agendar_secuencia.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ paciente_id, fecha, pasos, accion: 'sugerir' })
@@ -238,13 +267,27 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('sugerenciasHorarios').innerHTML = '<span style="color:#e53e3e;">No hay horarios disponibles que cumplan con la secuencia.</span>';
         }
     };
+
+    // Controles de navegación de día
+    document.getElementById('btnDiaAnterior').onclick = () => {
+        fechaActual.setDate(fechaActual.getDate() - 1);
+        cargarAgenda();
+    };
+    document.getElementById('btnDiaSiguiente').onclick = () => {
+        fechaActual.setDate(fechaActual.getDate() + 1);
+        cargarAgenda();
+    };
+    document.getElementById('btnHoy').onclick = () => {
+        fechaActual = new Date();
+        cargarAgenda();
+    };
 });
 
 // Cargar especialidades en el select del modal terapeuta
 async function cargarEspecialidades() {
     const select = document.getElementById('selectEspecialidad');
     select.innerHTML = '';
-    const especialidades = await fetch('../api/especialidades.php').then(r => r.json());
+    const especialidades = await fetch('/ani_terapeutas/api/especialidades.php').then(r => r.json());
     especialidades.forEach(e => {
         let opt = document.createElement('option');
         opt.value = e.id;
@@ -257,7 +300,7 @@ async function cargarEspecialidades() {
 async function cargarListaTerapeutas() {
     const cont = document.getElementById('listaTerapeutas');
     cont.innerHTML = '<p>Cargando...</p>';
-    const terapeutas = await fetch('../api/terapeutas.php').then(r => r.json());
+    const terapeutas = await fetch('/ani_terapeutas/api/terapeutas.php').then(r => r.json());
     if (!terapeutas.length) {
         cont.innerHTML = '<p>No hay terapeutas registrados.</p>';
         return;
@@ -274,7 +317,7 @@ async function cargarListaTerapeutas() {
 // Eliminar terapeuta
 window.eliminarTerapeuta = async function(id) {
     if (!confirm('¿Seguro que deseas eliminar este terapeuta?')) return;
-    const res = await fetch(`../api/terapeutas.php?id=${id}`, { method: 'DELETE' });
+    const res = await fetch(`/ani_terapeutas/api/terapeutas.php?id=${id}`, { method: 'DELETE' });
     if (res.ok) {
         alert('Terapeuta eliminado');
         cargarListaTerapeutas();
@@ -286,7 +329,19 @@ window.eliminarTerapeuta = async function(id) {
 async function cargarHorarios() {
     const cont = document.getElementById('listaHorarios');
     if (cont) cont.innerHTML = '<p>Cargando...</p>';
-    const horarios = await fetch('../api/horarios.php').then(r => r.json());
+    
+    // Cargar configuración
+    const config = await fetch('/ani_terapeutas/api/configuracion.php').then(r => r.json());
+    
+    // Establecer valores en el formulario
+    const form = document.getElementById('formHorario');
+    if (form) {
+        form.querySelector('input[name="hora_inicio"]').value = config.horaInicio || '08:00';
+        form.querySelector('input[name="hora_fin"]').value = config.horaFin || '18:00';
+        form.querySelector('input[name="duracion"]').value = config.minTime || '15';
+    }
+    
+    const horarios = await fetch('/ani_terapeutas/api/horarios.php').then(r => r.json());
     if (cont) {
         if (!horarios.length) {
             cont.innerHTML = '<p>No hay horarios configurados.</p>';
@@ -307,7 +362,7 @@ async function cargarHorarios() {
 // Eliminar horario
 window.eliminarHorario = async function(id) {
     if (!confirm('¿Seguro que deseas eliminar este horario?')) return;
-    const res = await fetch(`../api/horarios.php?id=${id}`, { method: 'DELETE' });
+    const res = await fetch(`/ani_terapeutas/api/horarios.php?id=${id}`, { method: 'DELETE' });
     if (res.ok) {
         cargarHorarios();
     }
@@ -317,7 +372,7 @@ window.eliminarHorario = async function(id) {
 async function cargarPacientes() {
     const select = document.getElementById('selectPaciente');
     select.innerHTML = '';
-    const pacientes = await fetch('../api/pacientes.php').then(r => r.json());
+    const pacientes = await fetch('/ani_terapeutas/api/pacientes.php').then(r => r.json());
     pacientes.forEach(p => {
         let opt = document.createElement('option');
         opt.value = p.id;
@@ -330,7 +385,7 @@ async function cargarPacientes() {
 async function cargarSecuencias() {
     const select = document.getElementById('selectSecuencia');
     select.innerHTML = '';
-    const secuencias = await fetch('../api/secuencias.php').then(r => r.json());
+    const secuencias = await fetch('/ani_terapeutas/api/secuencias.php').then(r => r.json());
     secuencias.forEach(s => {
         let opt = document.createElement('option');
         opt.value = s.id;
@@ -366,7 +421,7 @@ async function agregarPasoSecuencia() {
     selectEsp.required = true;
     selectEsp.style.minWidth = '140px';
     // Cargar especialidades
-    const especialidades = await fetch('../api/especialidades.php').then(r => r.json());
+    const especialidades = await fetch('/ani_terapeutas/api/especialidades.php').then(r => r.json());
     especialidades.forEach(e => {
         let opt = document.createElement('option');
         opt.value = e.id;
@@ -378,9 +433,31 @@ async function agregarPasoSecuencia() {
     selectTer.name = 'terapeuta_' + pasoId;
     selectTer.required = true;
     selectTer.style.minWidth = '140px';
+    // Select de duración
+    const selectDur = document.createElement('select');
+    selectDur.name = 'duracion_' + pasoId;
+    selectDur.required = true;
+    selectDur.style.width = '100px';
+    // Obtener minTime de la configuración
+    const config = await fetch('/ani_terapeutas/api/configuracion.php').then(r => r.json());
+    const minTime = parseInt(config.minTime || '15');
+    // Generar opciones de duración
+    for (let i = 1; i <= 5; i++) {
+        let opt = document.createElement('option');
+        opt.value = minTime * i;
+        opt.textContent = `${minTime * i} min`;
+        selectDur.appendChild(opt);
+    }
+    // Label para duración
+    const labelDur = document.createElement('label');
+    labelDur.style.display = 'flex';
+    labelDur.style.alignItems = 'center';
+    labelDur.style.gap = '4px';
+    labelDur.innerHTML = '<span>Duración:</span>';
+    labelDur.appendChild(selectDur);
     // Cargar terapeutas de la especialidad seleccionada
     async function cargarTerapeutasParaEspecialidad() {
-        const terapeutas = await fetch('../api/terapeutas.php').then(r => r.json());
+        const terapeutas = await fetch('/ani_terapeutas/api/terapeutas.php').then(r => r.json());
         selectTer.innerHTML = '';
         terapeutas.filter(t => t.especialidad_id == selectEsp.value).forEach(t => {
             let opt = document.createElement('option');
@@ -396,18 +473,11 @@ async function agregarPasoSecuencia() {
     btnDel.type = 'button';
     btnDel.className = 'btn btn-danger';
     btnDel.innerHTML = '<i class="fa fa-trash"></i>';
-    btnDel.onclick = () => {
-        div.remove();
-    };
-    // Numeración
-    const num = document.createElement('span');
-    num.textContent = (cont.children.length + 1) + '.';
-    num.style.fontWeight = 'bold';
-    num.style.minWidth = '18px';
-    // Agregar al contenedor
-    div.appendChild(num);
+    btnDel.onclick = () => div.remove();
+    // Agregar elementos al contenedor
     div.appendChild(selectEsp);
     div.appendChild(selectTer);
+    div.appendChild(labelDur);
     div.appendChild(btnDel);
     cont.appendChild(div);
 }
@@ -422,9 +492,11 @@ function mostrarSugerenciasHorarios(opciones, paciente_id, fecha, pasos) {
     let html = '<div style="max-height:220px;overflow-y:auto;">';
     opciones.forEach((op, i) => {
         html += `<div style='border:1px solid #d1d5db;border-radius:8px;padding:10px;margin-bottom:10px;background:#f8fafc;'>`;
-        html += `<b>Opción ${i+1}: ${op.inicio} - ${op.fin}</b><ul style='margin:6px 0 0 18px;'>`;
+        html += `<b>Opción ${i+1}: ${op.inicio} - ${op.fin}</b>`;
+        html += `<div style='color:#666;font-size:0.9em;margin:4px 0;'>Duración total: ${op.duracion_total} minutos</div>`;
+        html += `<ul style='margin:6px 0 0 18px;'>`;
         op.pasos.forEach(p => {
-            html += `<li>${p.nombre} con ${p.terapeuta} (${p.hora})</li>`;
+            html += `<li>${p.nombre} con ${p.terapeuta} (${p.hora}, ${p.duracion} min)</li>`;
         });
         html += '</ul>';
         html += `<button class='btn btn-primary' style='margin-top:8px;' onclick='agendarSecuencia(${i})'>Agendar esta secuencia</button>`;
@@ -440,7 +512,7 @@ function mostrarSugerenciasHorarios(opciones, paciente_id, fecha, pasos) {
 window.agendarSecuencia = async function(idx) {
     const { paciente_id, fecha, pasos } = window._datosSecuencia;
     document.getElementById('msgSecuencia').innerHTML = '<span style="color:#888;">Agendando...</span>';
-    const res = await fetch('../api/agendar_secuencia.php', {
+    const res = await fetch('/ani_terapeutas/api/agendar_secuencia.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ paciente_id, fecha, pasos, accion: 'agendar', opcion: idx })
@@ -460,7 +532,7 @@ async function cargarEspecialidadesEnModal() {
     const cont = document.getElementById('listaEspecialidadesModal');
     if (!cont) return;
     cont.innerHTML = '<p>Cargando...</p>';
-    const especialidades = await fetch('../api/especialidades.php').then(r => r.json());
+    const especialidades = await fetch('/ani_terapeutas/api/especialidades.php').then(r => r.json());
     if (!especialidades.length) {
         cont.innerHTML = '<p>No hay especialidades registradas.</p>';
         return;
@@ -499,11 +571,11 @@ function crearModalCita() {
 crearModalCita();
 
 async function mostrarModalCita(citaId) {
-    const res = await fetch(`../api/agendar.php?id=${citaId}`);
+    const res = await fetch(`/ani_terapeutas/api/agendar.php?id=${citaId}`);
     const cita = await res.json();
     if (!cita || !cita.paciente_id) return;
     // Obtener todas las citas de ese paciente para ese día
-    const res2 = await fetch(`../api/agendar.php?paciente_id=${cita.paciente_id}`);
+    const res2 = await fetch(`/ani_terapeutas/api/agendar.php?paciente_id=${cita.paciente_id}`);
     const citas = await res2.json();
     // Filtrar por fecha
     const citasDia = citas.filter(c => c.fecha === cita.fecha);

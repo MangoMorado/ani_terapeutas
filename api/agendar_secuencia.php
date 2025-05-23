@@ -47,14 +47,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     for ($i = 0; $i <= count($horarios) - count($pasos); $i++) {
         $bloque = array_slice($horarios, $i, count($pasos));
         $disponible = true;
+        $duracion_total = 0;
         foreach ($pasos as $idx => $paso) {
             $tid = $paso['terapeuta_id'];
             $h_ini = $bloque[$idx]['hora_inicio'];
             $h_fin = $bloque[$idx]['hora_fin'];
+            $duracion = $paso['duracion'] ?? 15; // Duración por defecto 15 minutos
+            $duracion_total += $duracion;
+            
+            // Calcular la hora de fin real basada en la duración
+            $h_ini_timestamp = strtotime($h_ini);
+            $h_fin_real = date('H:i:s', $h_ini_timestamp + ($duracion * 60));
+            
             // Verificar si el terapeuta está ocupado en ese bloque
             if (isset($ocupadas[$tid])) {
                 foreach ($ocupadas[$tid] as $cita) {
-                    if (!($h_fin <= $cita['inicio'] || $h_ini >= $cita['fin'])) {
+                    if (!($h_fin_real <= $cita['inicio'] || $h_ini >= $cita['fin'])) {
                         $disponible = false;
                         break 2;
                     }
@@ -65,7 +73,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $opciones[] = [
                 'inicio' => $bloque[0]['hora_inicio'],
                 'fin' => $bloque[count($bloque)-1]['hora_fin'],
-                'bloques' => $bloque
+                'bloques' => $bloque,
+                'duracion_total' => $duracion_total
             ];
         }
     }
@@ -88,16 +97,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         foreach ($opciones as $op) {
             $detalle = [];
             foreach ($pasos as $idx => $paso) {
+                $h_ini = $op['bloques'][$idx]['hora_inicio'];
+                $h_ini_timestamp = strtotime($h_ini);
+                $h_fin_real = date('H:i:s', $h_ini_timestamp + ($paso['duracion'] * 60));
                 $detalle[] = [
                     'nombre' => $paso['especialidad_nombre'],
                     'terapeuta' => $paso['terapeuta_nombre'],
-                    'hora' => $op['bloques'][$idx]['hora_inicio'] . '-' . $op['bloques'][$idx]['hora_fin']
+                    'hora' => $h_ini . '-' . $h_fin_real,
+                    'duracion' => $paso['duracion']
                 ];
             }
             $sugerencias[] = [
                 'inicio' => $op['inicio'],
                 'fin' => $op['fin'],
-                'pasos' => $detalle
+                'pasos' => $detalle,
+                'duracion_total' => $op['duracion_total']
             ];
         }
         echo json_encode(['opciones' => $sugerencias]);
@@ -107,12 +121,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Si la acción es agendar, crear las citas
     if ($accion === 'agendar' && isset($opcion) && isset($opciones[$opcion])) {
         foreach ($pasos as $idx => $paso) {
+            $h_ini = $opciones[$opcion]['bloques'][$idx]['hora_inicio'];
+            $h_ini_timestamp = strtotime($h_ini);
+            $h_fin_real = date('H:i:s', $h_ini_timestamp + ($paso['duracion'] * 60));
             $citaModel->create(
                 $paciente_id,
                 $paso['terapeuta_id'],
                 $fecha,
-                $opciones[$opcion]['bloques'][$idx]['hora_inicio'],
-                $opciones[$opcion]['bloques'][$idx]['hora_fin'],
+                $h_ini,
+                $h_fin_real,
                 null,
                 $idx+1
             );
